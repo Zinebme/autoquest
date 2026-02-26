@@ -1,0 +1,456 @@
+<Window x:Class="autoquest.MainWindow" 
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation" 
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml" 
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+        xmlns:local="clr-namespace:autoquest" 
+        mc:Ignorable="d" 
+        Title="AutoQuest - Saisie Médicale Automatique"  
+        Height="750" Width="1100" 
+        MinHeight="600" MinWidth="1000" 
+        WindowStartupLocation="CenterScreen" 
+        ResizeMode="CanResizeWithGrip" 
+        WindowStyle="SingleBorderWindow" 
+        Background="#F3F4F6" 
+        FontFamily="Segoe UI"> 
+ 
+    <Window.Resources> 
+        <!-- PALETTE DE COULEURS --> 
+        <SolidColorBrush x:Key="PrimaryColor" Color="#2563EB"/> 
+        <SolidColorBrush x:Key="SecondaryColor" Color="#1E293B"/> 
+        <SolidColorBrush x:Key="AccentColor" Color="#10B981"/> 
+        <SolidColorBrush x:Key="CardBackground" Color="White"/> 
+        <SolidColorBrush x:Key="TextLight" Color="#6B7280"/> 
+        <SolidColorBrush x:Key="BorderColor" Color="#E5E7EB"/> 
+ 
+        <!-- STYLE DES BOUTONS PRINCIPAUX --> 
+        <Style x:Key="PrimaryButton" TargetType="Button"> 
+            <Setter Property="Background" Value="{StaticResource PrimaryColor}"/> 
+            <Setter Property="Foreground" Value="White"/> 
+            <Setter Property="Padding" Value="15,10"/> 
+            <Setter Property="BorderThickness" Value="0"/> 
+            <Setter Property="FontSize" Value="14"/> 
+            <Setter Property="FontWeight" Value="SemiBold"/> 
+            <Setter Property="Cursor" Value="Hand"/> 
+            <Setter Property="Template"> 
+                <Setter.Value> 
+                    <ControlTemplate TargetType="Button"> 
+                        <Border Background="{TemplateBinding Background}" CornerRadius="6" Padding="{TemplateBinding Padding}"> 
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/> 
+                        </Border> 
+                        <ControlTemplate.Triggers> 
+                            <Trigger Property="IsMouseOver" Value="True"> 
+                                <Setter Property="Opacity" Value="0.9"/> 
+                            </Trigger> 
+                        </ControlTemplate.Triggers> 
+                    </ControlTemplate> 
+                </Setter.Value> 
+            </Setter> 
+        </Style> 
+ 
+        <!-- STYLE DES BOUTONS SECONDAIRES --> 
+        <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource PrimaryButton}"> 
+            <Setter Property="Background" Value="#E5E7EB"/> 
+            <Setter Property="Foreground" Value="#1F2937"/> 
+        </Style> 
+ 
+        <!-- STYLE DES CARTES --> 
+        <Style x:Key="CardStyle" TargetType="Border"> 
+            <Setter Property="Background" Value="{StaticResource CardBackground}"/> 
+            <Setter Property="CornerRadius" Value="8"/> 
+            <Setter Property="Padding" Value="15"/> 
+            <Setter Property="BorderBrush" Value="{StaticResource BorderColor}"/> 
+            <Setter Property="BorderThickness" Value="1"/> 
+            <Setter Property="Effect"> 
+                <Setter.Value> 
+                    <DropShadowEffect Color="#000000" Opacity="0.05" BlurRadius="8" ShadowDepth="2"/> 
+                </Setter.Value> 
+            </Setter> 
+        </Style> 
+ 
+        <!-- STYLE POUR LES CHECKBOX --> 
+        <Style x:Key="FileCheckBox" TargetType="CheckBox"> 
+            <Setter Property="Margin" Value="5,2"/> 
+            <Setter Property="FontSize" Value="13"/> 
+        </Style> 
+    </Window.Resources> 
+ 
+    <Grid> 
+        <Grid.RowDefinitions> 
+            <RowDefinition Height="Auto"/> 
+            <RowDefinition Height="*"/> 
+            <RowDefinition Height="30"/> 
+        </Grid.RowDefinitions> 
+ 
+        <!-- ==================== MENU PRINCIPAL ==================== --> 
+        <Menu Grid.Row="0" Background="White" Padding="5" Height="30"> 
+            <MenuItem x:Name="FileMenu" Header="Fichier"> 
+                <MenuItem x:Name="NewProjectMenuItem" Header="Nouveau projet" Click="NouveauProjet_Click" InputGestureText="Ctrl+N"/> 
+                <MenuItem x:Name="OpenProjectMenuItem" Header="Ouvrir un projet" Click="OuvrirProjet_Click" InputGestureText="Ctrl+O"/> 
+                <Separator/> 
+                <MenuItem x:Name="SaveMenuItem" Header="Sauvegarder" Click="Sauvegarder_Click" InputGestureText="Ctrl+S"/> 
+                <MenuItem x:Name="SaveAsMenuItem" Header="Sauvegarder sous..." Click="SauvegarderSous_Click"/> 
+                <Separator/> 
+                <MenuItem x:Name="ExportMenu" Header="Exporter"> 
+                    <MenuItem x:Name="ExportExcelMenuItem" Header="Excel" Click="ExportExcelButton_Click"/> 
+                    <MenuItem x:Name="ExportCsvMenuItem" Header="CSV" Click="ExportCsvButton_Click"/> 
+                </MenuItem> 
+                <Separator/> 
+                <MenuItem x:Name="QuitMenuItem" Header="Quitter" Click="Quitter_Click" InputGestureText="Ctrl+Q"/> 
+            </MenuItem> 
+            <MenuItem x:Name="EditMenu" Header="Édition"> 
+                <MenuItem x:Name="CopyMenuItem" Header="Copier" InputGestureText="Ctrl+C"/> 
+                <MenuItem x:Name="PasteMenuItem" Header="Coller" InputGestureText="Ctrl+V"/> 
+                <Separator/> 
+                <MenuItem x:Name="DeleteMenuItem" Header="Supprimer" Click="DeleteSelected_Click" InputGestureText="Suppr"/> 
+                <MenuItem x:Name="SelectAllMenuItem" Header="Tout sélectionner" Click="SelectAll_Click" InputGestureText="Ctrl+A"/> 
+            </MenuItem> 
+            <MenuItem x:Name="ViewMenu" Header="Affichage"> 
+                <MenuItem x:Name="DarkModeMenuItem" Header="Mode sombre" IsCheckable="True" Click="ModeSombre_Click"/> 
+                <Separator/> 
+                <MenuItem x:Name="ZoomInMenuItem" Header="Zoom avant" InputGestureText="Ctrl++"/> 
+                <MenuItem x:Name="ZoomOutMenuItem" Header="Zoom arrière" InputGestureText="Ctrl+-"/> 
+            </MenuItem> 
+            <MenuItem x:Name="LanguageMenu" Header="Langue"> 
+                <MenuItem x:Name="MenuEnglish" Header="English" Click="MenuEnglish_Click"/> 
+                <MenuItem x:Name="MenuFrench" Header="Français" Click="MenuFrench_Click"/> 
+            </MenuItem> 
+            <MenuItem x:Name="HelpMenu" Header="Aide"> 
+                <MenuItem x:Name="DocumentationMenuItem" Header="Documentation" Click="Documentation_Click"/> 
+                <Separator/> 
+                <MenuItem x:Name="AboutMenuItem" Header="À propos" Click="APropos_Click"/> 
+            </MenuItem> 
+        </Menu> 
+ 
+        <!-- ==================== ONGLETS ==================== --> 
+        <TabControl Grid.Row="1" Margin="10" Background="Transparent" BorderThickness="0"> 
+ 
+            <!-- ===== ONGLET 1 : TABLEAU DE BORD ===== --> 
+            <TabItem x:Name="HomeTab" Header="📊 Tableau de bord"> 
+                <Grid Margin="10"> 
+                    <Grid.RowDefinitions> 
+                        <RowDefinition Height="Auto"/> 
+                        <RowDefinition Height="Auto"/> 
+                        <RowDefinition Height="*"/> 
+                    </Grid.RowDefinitions> 
+ 
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,15"> 
+                        <StackPanel> 
+                            <TextBlock x:Name="ProjectInfoTitle" Text="Projet en cours" FontSize="18" FontWeight="Bold" Margin="0,0,0,10"/> 
+                            <Grid> 
+                                <Grid.ColumnDefinitions> 
+                                    <ColumnDefinition Width="Auto"/> 
+                                    <ColumnDefinition Width="*"/> 
+                                    <ColumnDefinition Width="Auto"/> 
+                                    <ColumnDefinition Width="*"/> 
+                                </Grid.ColumnDefinitions> 
+                                <Grid.RowDefinitions> 
+                                    <RowDefinition Height="Auto"/> 
+                                    <RowDefinition Height="Auto"/> 
+                                    <RowDefinition Height="Auto"/> 
+                                </Grid.RowDefinitions> 
+                                <TextBlock Grid.Row="0" Grid.Column="0" Text="Nom :" FontWeight="Bold" Margin="0,0,10,5"/> 
+                                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ProjectNameDisplay" Text="Sans titre" Margin="0,0,20,5"/> 
+                                <TextBlock Grid.Row="0" Grid.Column="2" Text="Créé le :" FontWeight="Bold" Margin="20,0,10,5"/> 
+                                <TextBlock Grid.Row="0" Grid.Column="3" x:Name="ProjectDateDisplay" Text="-" Margin="0,0,0,5"/> 
+                                <TextBlock Grid.Row="1" Grid.Column="0" Text="Dossier :" FontWeight="Bold" Margin="0,0,10,5"/> 
+                                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="ProjectPathDisplay" Text="Non sauvegardé" Margin="0,0,20,5" TextTrimming="CharacterEllipsis"/> 
+                                <TextBlock Grid.Row="1" Grid.Column="2" Text="Statut :" FontWeight="Bold" Margin="20,0,10,5"/> 
+                                <TextBlock Grid.Row="1" Grid.Column="3" x:Name="ProjectStatusDisplay" Text="-" Margin="0,0,0,5"/> 
+                                <TextBlock Grid.Row="2" Grid.Column="0" Text="Fichiers :" FontWeight="Bold" Margin="0,0,10,5"/> 
+                                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="ProjectFilesDisplay" Text="0" Margin="0,0,20,5"/> 
+                            </Grid> 
+                            <ProgressBar x:Name="ProjectProgressBar" Height="8" Margin="0,15,0,0" Maximum="100" Value="0" Foreground="{StaticResource AccentColor}"/> 
+                            <TextBlock x:Name="ProjectProgressText" Text="0/0 patients traités" FontSize="12" Foreground="{StaticResource TextLight}" HorizontalAlignment="Right" Margin="0,5,0,0"/> 
+                        </StackPanel> 
+                    </Border> 
+ 
+                    <Border Grid.Row="1" Style="{StaticResource CardStyle}" Margin="0,0,0,15"> 
+                        <StackPanel> 
+                            <TextBlock x:Name="QuickActionsTitle" Text="Actions rapides" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+                            <UniformGrid Columns="3"> 
+                                <Button x:Name="QuickNewProject" Content="Nouveau projet" Style="{StaticResource PrimaryButton}" Margin="5" Click="NouveauProjet_Click"/> 
+                                <Button x:Name="QuickOpenProject" Content="Ouvrir projet" Style="{StaticResource SecondaryButton}" Margin="5" Click="OuvrirProjet_Click"/> 
+                                <Button x:Name="QuickSaveProject" Content="Sauvegarder" Style="{StaticResource SecondaryButton}" Margin="5" Click="Sauvegarder_Click"/> 
+                            </UniformGrid> 
+                        </StackPanel> 
+                    </Border> 
+ 
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}"> 
+                        <StackPanel> 
+                            <TextBlock x:Name="StatsTitle" Text="Statistiques" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+                            <Grid> 
+                                <Grid.ColumnDefinitions> 
+                                    <ColumnDefinition Width="*"/> 
+                                    <ColumnDefinition Width="*"/> 
+                                    <ColumnDefinition Width="*"/> 
+                                </Grid.ColumnDefinitions> 
+                                <StackPanel Grid.Column="0" HorizontalAlignment="Center"> 
+                                    <TextBlock x:Name="StatsFilesLabel" Text="Fichiers chargés" Foreground="{StaticResource TextLight}"/> 
+                                    <TextBlock x:Name="StatsFilesValue" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource PrimaryColor}"/> 
+                                </StackPanel> 
+                                <StackPanel Grid.Column="1" HorizontalAlignment="Center"> 
+                                    <TextBlock x:Name="StatsExtractionsLabel" Text="Extractions" Foreground="{StaticResource TextLight}"/> 
+                                    <TextBlock x:Name="StatsExtractionsValue" Text="0" FontSize="32" FontWeight="Bold" Foreground="{StaticResource AccentColor}"/> 
+                                </StackPanel> 
+                                <StackPanel Grid.Column="2" HorizontalAlignment="Center"> 
+                                    <TextBlock x:Name="StatsToVerifyLabel" Text="À vérifier" Foreground="{StaticResource TextLight}"/> 
+                                    <TextBlock x:Name="StatsToVerifyValue" Text="0" FontSize="32" FontWeight="Bold" Foreground="#F59E0B"/> 
+                                </StackPanel> 
+                            </Grid> 
+                        </StackPanel> 
+                    </Border> 
+                </Grid> 
+            </TabItem> 
+ 
+            <!-- ===== ONGLET 2 : CONFIGURATION ===== --> 
+            <TabItem x:Name="ConfigTab" Header="⚙️ Configuration"> 
+                <Grid Margin="10"> 
+                    <Grid.ColumnDefinitions> 
+                        <ColumnDefinition Width="*"/> 
+                        <ColumnDefinition Width="Auto"/> 
+                        <ColumnDefinition Width="*"/> 
+                    </Grid.ColumnDefinitions> 
+ 
+                    <!-- Partie GAUCHE : Gestion des fichiers --> 
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,10,0"> 
+                        <Grid> 
+                            <Grid.RowDefinitions> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="*"/> 
+                                <RowDefinition Height="Auto"/> 
+                            </Grid.RowDefinitions> 
+                            <TextBlock x:Name="FileManagerTitle" Grid.Row="0" Text="📁 Gestion des fichiers" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+                             
+                            <Border x:Name="DropZone" Grid.Row="1" 
+                                    Background="#F8F9FA" BorderBrush="{StaticResource BorderColor}" 
+                                    BorderThickness="2" CornerRadius="8" Padding="15" Margin="0,0,0,10" 
+                                    AllowDrop="True" Drop="DropZone_Drop" DragEnter="DropZone_DragEnter" 
+                                    MouseLeftButtonDown="DropZone_MouseLeftButtonDown" Cursor="Hand"> 
+                                <StackPanel> 
+                                    <TextBlock Text="📥" FontSize="32" HorizontalAlignment="Center"/> 
+                                    <TextBlock x:Name="DropText" Text="Glissez-déposez vos fichiers (Image, PDF)" HorizontalAlignment="Center" FontWeight="Bold" Margin="0,5"/> 
+                                    <TextBlock Text="ou cliquez pour parcourir" HorizontalAlignment="Center" FontSize="12" Foreground="{StaticResource TextLight}"/> 
+                                </StackPanel> 
+                            </Border> 
+ 
+                            <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="0,0,0,5"> 
+                                <CheckBox x:Name="SelectAllCheckBox" Content="Tout sélectionner" VerticalAlignment="Center" Margin="0,0,10,0" Click="SelectAllCheckBox_Click"/> 
+                                <Button x:Name="DeleteSelectedButton" Content="🗑️ Supprimer" Style="{StaticResource SecondaryButton}" Padding="10,5" FontSize="12" Click="DeleteSelected_Click"/> 
+                            </StackPanel> 
+ 
+                            <ListBox x:Name="FilesListBox" Grid.Row="3" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" Margin="0,5"> 
+                                <ListBox.ItemTemplate> 
+                                    <DataTemplate> 
+                                        <CheckBox Content="{Binding FileName}" IsChecked="{Binding IsSelected}" Margin="2" Style="{StaticResource FileCheckBox}"/> 
+                                    </DataTemplate> 
+                                </ListBox.ItemTemplate> 
+                            </ListBox> 
+                             
+                            <TextBlock x:Name="TotalFilesText" Grid.Row="4" Text="0 fichiers chargés" FontSize="12" Foreground="{StaticResource TextLight}" Margin="0,5,0,0"/> 
+                        </Grid> 
+                    </Border> 
+ 
+                    <GridSplitter Grid.Column="1" Width="4" Background="Transparent" HorizontalAlignment="Center"/> 
+ 
+                    <!-- Partie DROITE : Variables et Paramètres --> 
+                    <Border Grid.Column="2" Style="{StaticResource CardStyle}" Margin="10,0,0,0"> 
+                        <Grid> 
+                            <Grid.RowDefinitions> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="*"/> 
+                                <RowDefinition Height="Auto"/> 
+                            </Grid.RowDefinitions> 
+ 
+                            <TextBlock x:Name="ConfigTitle" Grid.Row="0" Text="📋 Variables à extraire" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+ 
+                            <Grid Grid.Row="1" Margin="0,0,0,10"> 
+                                <Grid.ColumnDefinitions> 
+                                    <ColumnDefinition Width="*"/> 
+                                    <ColumnDefinition Width="Auto"/> 
+                                </Grid.ColumnDefinitions> 
+                                <TextBox x:Name="NewVariableTextBox" Padding="8" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" Margin="0,0,5,0"/> 
+                                <Button x:Name="AddVariableManuallyButton" Grid.Column="1" Content="➕ Ajouter" Style="{StaticResource PrimaryButton}" Padding="15,8" Click="AddVariableManually_Click"/> 
+                            </Grid> 
+ 
+                            <ListBox x:Name="VariablesListBox" Grid.Row="2" BorderThickness="1" BorderBrush="{StaticResource BorderColor}"> 
+                                <ListBox.ItemTemplate> 
+                                    <DataTemplate> 
+                                        <Grid Margin="5"> 
+                                            <Grid.ColumnDefinitions> 
+                                                <ColumnDefinition Width="*"/> 
+                                                <ColumnDefinition Width="Auto"/> 
+                                                <ColumnDefinition Width="Auto"/> 
+                                                <ColumnDefinition Width="Auto"/> 
+                                            </Grid.ColumnDefinitions> 
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center" FontWeight="SemiBold"/> 
+                                            <Button Grid.Column="1" Content="🔼" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="MoveVariableUp_Click" Cursor="Hand"/> 
+                                            <Button Grid.Column="2" Content="🔽" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="MoveVariableDown_Click" Cursor="Hand"/> 
+                                            <Button Grid.Column="3" Content="❌" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="DeleteVariable_Click" Cursor="Hand"/> 
+                                        </Grid> 
+                                    </DataTemplate> 
+                                </ListBox.ItemTemplate> 
+                            </ListBox> 
+ 
+                            <StackPanel Grid.Row="3" Margin="0,15,0,0"> 
+                                <Separator Margin="0,0,0,15"/> 
+                                <TextBlock x:Name="PagesConfigTitle" Text="📄 Organisation des pages" FontSize="14" FontWeight="Bold" Margin="0,0,0,10"/> 
+                                <Grid> 
+                                    <Grid.ColumnDefinitions> 
+                                        <ColumnDefinition Width="*"/> 
+                                        <ColumnDefinition Width="Auto"/> 
+                                    </Grid.ColumnDefinitions> 
+                                    <TextBlock Text="Nombre de pages par patient :" VerticalAlignment="Center"/> 
+                                    <TextBox Grid.Column="1" x:Name="PagesPerPatientConfigTextBox" Text="1" Width="50" Padding="5" HorizontalContentAlignment="Center" TextChanged="PagesPerPatientTextBox_TextChanged"/> 
+                                </Grid> 
+                                <TextBlock x:Name="OrganizationText" Text="Aperçu : Patient 1 → pages 1-1" Foreground="{StaticResource TextLight}" FontSize="12" Margin="0,5,0,0"/> 
+                            </StackPanel> 
+                        </Grid> 
+                    </Border> 
+                </Grid> 
+            </TabItem> 
+ 
+            <!-- ===== ONGLET 3 : TRAITEMENT & CONTRÔLE ===== --> 
+            <TabItem x:Name="ExtractTab" Header="🚀 Traitement &amp; Contrôle"> 
+                <Grid Margin="10"> 
+                    <Grid.ColumnDefinitions> 
+                        <ColumnDefinition Width="350"/> 
+                        <ColumnDefinition Width="*"/> 
+                    </Grid.ColumnDefinitions> 
+ 
+                    <!-- Liste de navigation et statut --> 
+                    <Border Grid.Column="0" Style="{StaticResource CardStyle}" Margin="0,0,10,0"> 
+                        <Grid> 
+                            <Grid.RowDefinitions> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="*"/> 
+                                <RowDefinition Height="Auto"/> 
+                            </Grid.RowDefinitions> 
+ 
+                            <StackPanel Grid.Row="0" Margin="0,0,0,15"> 
+                                <TextBlock Text="🎯 File d'attente" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+                                <Button x:Name="ExtractButton" Content="🚀 Lancer l'extraction du patient" Style="{StaticResource PrimaryButton}" Height="50" Click="ExtractButton_Click"/> 
+                            </StackPanel> 
+ 
+                            <ListBox x:Name="ControlListBox" Grid.Row="1" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" SelectionChanged="ControlListBox_SelectionChanged"> 
+                                <!-- Liste des patients ou éléments extraits --> 
+                            </ListBox> 
+ 
+                            <Grid Grid.Row="2" Margin="0,15,0,0"> 
+                                <Grid.ColumnDefinitions> 
+                                    <ColumnDefinition Width="*"/> 
+                                    <ColumnDefinition Width="Auto"/> 
+                                    <ColumnDefinition Width="*"/> 
+                                </Grid.ColumnDefinitions> 
+                                <Button x:Name="PrevButton" Grid.Column="0" Content="◀ Précédent" Style="{StaticResource SecondaryButton}" Click="PrevButton_Click"/> 
+                                <TextBlock x:Name="PatientLabel" Grid.Column="1" Text="Patient 0 / 0" FontWeight="Bold" VerticalAlignment="Center" Margin="15,0"/> 
+                                <Button x:Name="NextButton" Grid.Column="2" Content="Suivant ▶" Style="{StaticResource SecondaryButton}" Click="NextButton_Click"/> 
+                            </Grid> 
+                        </Grid> 
+                    </Border> 
+ 
+                    <!-- Visualisation et Correction --> 
+                    <Border Grid.Column="1" Style="{StaticResource CardStyle}"> 
+                        <Grid> 
+                            <Grid.RowDefinitions> 
+                                <RowDefinition Height="Auto"/> 
+                                <RowDefinition Height="2*"/> 
+                                <RowDefinition Height="*"/> 
+                            </Grid.RowDefinitions> 
+ 
+                            <TextBlock x:Name="ControlViewTitle" Grid.Row="0" Text="🔍 Vérification des données" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
+ 
+                            <Border Grid.Row="1" Background="#F9FAFB" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10"> 
+                                <Grid> 
+                                    <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"> 
+                                        <Image x:Name="PreviewImage" Stretch="Uniform"/> 
+                                    </ScrollViewer> 
+                                    <TextBlock x:Name="NoImageText" Text="Aucun visuel disponible" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextLight}"/> 
+                                </Grid> 
+                            </Border> 
+ 
+                            <Border Grid.Row="2" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Padding="10" Background="White"> 
+                                <ScrollViewer VerticalScrollBarVisibility="Auto"> 
+                                    <StackPanel x:Name="ControlDataPanel"> 
+                                        <TextBlock Text="Sélectionnez un patient pour voir les résultats extraits" HorizontalAlignment="Center" Foreground="{StaticResource TextLight}" Margin="20"/> 
+                                    </StackPanel> 
+                                </ScrollViewer> 
+                            </Border> 
+                        </Grid> 
+                    </Border> 
+                </Grid> 
+            </TabItem> 
+ 
+            <!-- ===== ONGLET 4 : RÉSULTATS ===== --> 
+            <TabItem x:Name="ResultsTab" Header="📋 Résultats"> 
+                <Grid Margin="10"> 
+                    <Grid.RowDefinitions> 
+                        <RowDefinition Height="Auto"/> 
+                        <RowDefinition Height="*"/> 
+                        <RowDefinition Height="Auto"/> 
+                    </Grid.RowDefinitions> 
+ 
+                    <Border Grid.Row="0" Style="{StaticResource CardStyle}" Margin="0,0,0,10"> 
+                        <DockPanel> 
+                            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left"> 
+                                <Grid Width="250" Margin="0,0,10,0"> 
+                                    <TextBox x:Name="SearchTextBox" Padding="8,5" VerticalAlignment="Center" TextChanged="SearchTextBox_TextChanged"/> 
+                                    <TextBlock x:Name="SearchPlaceholder" Text="🔍 Rechercher un patient..." Foreground="#9CA3AF" IsHitTestVisible="False" VerticalAlignment="Center" Margin="10,0"/> 
+                                </Grid> 
+                            </StackPanel> 
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right"> 
+                                <Button x:Name="ExportExcelResultsButton" Content="📊 Excel" Style="{StaticResource PrimaryButton}" Width="100" Margin="5" Click="ExportExcelButton_Click"/> 
+                                <Button x:Name="ExportCsvResultsButton" Content="📄 CSV" Style="{StaticResource SecondaryButton}" Width="100" Margin="5" Click="ExportCsvButton_Click"/> 
+                                <Button x:Name="ClearResultsButton" Content="🔄 Effacer" Style="{StaticResource SecondaryButton}" Width="100" Margin="5" Click="EffacerResultats_Click"/> 
+                            </StackPanel> 
+                        </DockPanel> 
+                    </Border> 
+ 
+                    <DataGrid x:Name="ResultsDataGrid"  
+                              Grid.Row="1"  
+                              AutoGenerateColumns="True"  
+                              IsReadOnly="True" 
+                              GridLinesVisibility="Horizontal"  
+                              Background="White"  
+                              BorderBrush="{StaticResource BorderColor}"  
+                              BorderThickness="1" 
+                              Margin="0,0,0,10"/> 
+ 
+                    <Border Grid.Row="2" Style="{StaticResource CardStyle}"> 
+                        <UniformGrid Columns="3"> 
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"> 
+                                <TextBlock Text="👥 Patients :" Foreground="{StaticResource TextLight}" Margin="0,0,5,0"/> 
+                                <TextBlock x:Name="StatPatientsText" Text="0" FontWeight="Bold"/> 
+                            </StackPanel> 
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"> 
+                                <TextBlock Text="📄 Pages :" Foreground="{StaticResource TextLight}" Margin="0,0,5,0"/> 
+                                <TextBlock x:Name="StatPagesText" Text="0" FontWeight="Bold"/> 
+                            </StackPanel> 
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"> 
+                                <TextBlock Text="✅ Extractions :" Foreground="{StaticResource TextLight}" Margin="0,0,5,0"/> 
+                                <TextBlock x:Name="StatExtractionsText" Text="0" FontWeight="Bold"/> 
+                            </StackPanel> 
+                        </UniformGrid> 
+                    </Border> 
+                </Grid> 
+            </TabItem> 
+        </TabControl> 
+ 
+        <!-- ==================== BARRE DE STATUT ==================== --> 
+        <StatusBar Grid.Row="2" Background="{StaticResource SecondaryColor}" Padding="10,0"> 
+            <StatusBarItem> 
+                <TextBlock x:Name="StatusText" Text="Prêt" Foreground="White" FontSize="12"/> 
+            </StatusBarItem> 
+            <Separator Background="#374151"/> 
+            <StatusBarItem HorizontalAlignment="Right"> 
+                <StackPanel Orientation="Horizontal"> 
+                    <TextBlock Text="Quota : " Foreground="#9CA3AF" FontSize="12"/> 
+                    <TextBlock x:Name="QuotaStatusText" Text="-" Foreground="{StaticResource AccentColor}" FontSize="12" FontWeight="Bold"/> 
+                </StackPanel> 
+            </StatusBarItem> 
+        </StatusBar> 
+    </Grid> 
+</Window>
