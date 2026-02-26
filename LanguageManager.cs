@@ -59,9 +59,22 @@ namespace autoquest
             ["msg_warning"] = new() { [AppLanguage.English] = "Warning", [AppLanguage.French] = "Attention" },
             ["msg_error"] = new() { [AppLanguage.English] = "Error", [AppLanguage.French] = "Erreur" },
             ["msg_no_project"] = new() { [AppLanguage.English] = "No project opened", [AppLanguage.French] = "Aucun projet ouvert" },
+            ["msg_no_data"] = new() { [AppLanguage.English] = "No data to export", [AppLanguage.French] = "Aucune donnée à exporter" },
             ["msg_confirm_delete"] = new() { [AppLanguage.English] = "Delete selected items?", [AppLanguage.French] = "Supprimer les éléments sélectionnés ?" },
             ["msg_confirm_clear"] = new() { [AppLanguage.English] = "Clear all results?", [AppLanguage.French] = "Effacer tous les résultats ?" },
-            ["status_saved"] = new() { [AppLanguage.English] = "Project saved", [AppLanguage.French] = "Projet sauvegardé" }
+            ["status_saved"] = new() { [AppLanguage.English] = "Project saved", [AppLanguage.French] = "Projet sauvegardé" },
+            ["bulk_add_placeholder"] = new() { [AppLanguage.English] = "Add multiple (one per line)", [AppLanguage.French] = "Ajouter plusieurs (une par ligne)" },
+            ["config_manual_add"] = new() { [AppLanguage.English] = "Add", [AppLanguage.French] = "Ajouter" },
+            ["control_verification_title"] = new() { [AppLanguage.English] = "Data Verification", [AppLanguage.French] = "Vérification des données" },
+            ["pages_per_patient"] = new() { [AppLanguage.English] = "Pages per patient:", [AppLanguage.French] = "Nombre de pages par patient :" },
+            ["status_ready"] = new() { [AppLanguage.English] = "Ready", [AppLanguage.French] = "Prêt" },
+            ["dashboard_tab"] = new() { [AppLanguage.English] = "📊 Dashboard", [AppLanguage.French] = "📊 Tableau de bord" },
+            ["config_tab"] = new() { [AppLanguage.English] = "⚙️ Configuration", [AppLanguage.French] = "⚙️ Configuration" },
+            ["extract_tab"] = new() { [AppLanguage.English] = "🚀 Treatment & Control", [AppLanguage.French] = "🚀 Traitement & Contrôle" },
+            ["results_tab"] = new() { [AppLanguage.English] = "📋 Results", [AppLanguage.French] = "📋 Résultats" },
+            ["patient"] = new() { [AppLanguage.English] = "Patient", [AppLanguage.French] = "Patient" },
+            ["overview"] = new() { [AppLanguage.English] = "Overview", [AppLanguage.French] = "Aperçu" },
+            ["no_files"] = new() { [AppLanguage.English] = "No files loaded", [AppLanguage.French] = "Aucun fichier chargé" }
         };
 
         public static string GetText(string key)
