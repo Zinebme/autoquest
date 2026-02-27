@@ -268,28 +268,41 @@
                             <TextBlock x:Name="ConfigTitle" Grid.Row="0" Text="📋 Variables à extraire" FontSize="16" FontWeight="Bold" Margin="0,0,0,10"/> 
  
                             <Grid Grid.Row="1" Margin="0,0,0,10"> 
+                                <Grid.RowDefinitions>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                    <RowDefinition Height="Auto"/>
+                                </Grid.RowDefinitions>
                                 <Grid.ColumnDefinitions> 
                                     <ColumnDefinition Width="*"/> 
                                     <ColumnDefinition Width="Auto"/> 
                                 </Grid.ColumnDefinitions> 
-                                <TextBox x:Name="NewVariableTextBox" Padding="8" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" Margin="0,0,5,0"/> 
-                                <Button x:Name="AddVariableManuallyButton" Grid.Column="1" Content="➕ Ajouter" Style="{StaticResource PrimaryButton}" Padding="15,8" Click="AddVariableManually_Click"/> 
+
+                                <!-- Ajout individuel -->
+                                <TextBox x:Name="NewVariableTextBox" Grid.Row="0" Grid.Column="0" Padding="8" BorderThickness="1" BorderBrush="{StaticResource BorderColor}" Margin="0,0,5,5"/>
+                                <Button x:Name="AddVariableManuallyButton" Grid.Row="0" Grid.Column="1" Content="➕ Ajouter" Style="{StaticResource PrimaryButton}" Padding="15,8" Margin="0,0,0,5" Click="AddVariableManually_Click"/>
+
+                                <!-- Ajout en masse -->
+                                <TextBox x:Name="BulkVariablesTextBox" Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2"
+                                         Height="80" Margin="0,5,0,5" Padding="8" AcceptsReturn="True"
+                                         VerticalScrollBarVisibility="Auto" BorderThickness="1" BorderBrush="{StaticResource BorderColor}"/>
+                                <Button x:Name="BulkAddVariablesButton" Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2"
+                                        Content="📥 Ajouter plusieurs (une par ligne)" Style="{StaticResource SecondaryButton}"
+                                        Padding="10,5" Margin="0,0,0,10" Click="BulkAddVariables_Click"/>
                             </Grid> 
  
-                            <ListBox x:Name="VariablesListBox" Grid.Row="2" BorderThickness="1" BorderBrush="{StaticResource BorderColor}"> 
+                            <ListBox x:Name="VariablesListBox" Grid.Row="2" BorderThickness="1" BorderBrush="{StaticResource BorderColor}"
+                                     AllowDrop="True" PreviewMouseLeftButtonDown="VariablesListBox_PreviewMouseLeftButtonDown"
+                                     MouseMove="VariablesListBox_MouseMove" Drop="VariablesListBox_Drop">
                                 <ListBox.ItemTemplate> 
                                     <DataTemplate> 
                                         <Grid Margin="5"> 
                                             <Grid.ColumnDefinitions> 
                                                 <ColumnDefinition Width="*"/> 
                                                 <ColumnDefinition Width="Auto"/> 
-                                                <ColumnDefinition Width="Auto"/> 
-                                                <ColumnDefinition Width="Auto"/> 
                                             </Grid.ColumnDefinitions> 
                                             <TextBlock Text="{Binding}" VerticalAlignment="Center" FontWeight="SemiBold"/> 
-                                            <Button Grid.Column="1" Content="🔼" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="MoveVariableUp_Click" Cursor="Hand"/> 
-                                            <Button Grid.Column="2" Content="🔽" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="MoveVariableDown_Click" Cursor="Hand"/> 
-                                            <Button Grid.Column="3" Content="❌" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="DeleteVariable_Click" Cursor="Hand"/> 
+                                            <Button Grid.Column="1" Content="❌" Background="Transparent" BorderThickness="0" Margin="5,0" Tag="{Binding}" Click="DeleteVariable_Click" Cursor="Hand"/>
                                         </Grid> 
                                     </DataTemplate> 
                                 </ListBox.ItemTemplate> 
@@ -366,7 +379,16 @@
                             <Border Grid.Row="1" Background="#F9FAFB" BorderBrush="{StaticResource BorderColor}" BorderThickness="1" CornerRadius="4" Margin="0,0,0,10"> 
                                 <Grid> 
                                     <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"> 
-                                        <Image x:Name="PreviewImage" Stretch="Uniform"/> 
+                                        <ItemsControl x:Name="MultiPagePreviewControl">
+                                            <ItemsControl.ItemTemplate>
+                                                <DataTemplate>
+                                                    <Grid Margin="0,0,0,20">
+                                                        <Image Source="{Binding ImageSource}" Stretch="Uniform"/>
+                                                        <Canvas x:Name="AnnotationCanvas" Background="Transparent" Width="{Binding Width}" Height="{Binding Height}"/>
+                                                    </Grid>
+                                                </DataTemplate>
+                                            </ItemsControl.ItemTemplate>
+                                        </ItemsControl>
                                     </ScrollViewer> 
                                     <TextBlock x:Name="NoImageText" Text="Aucun visuel disponible" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{StaticResource TextLight}"/> 
                                 </Grid> 

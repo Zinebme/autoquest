@@ -28,5 +28,19 @@ namespace autoquest
     public class ExtractResponse
     {
         public int remaining { get; set; } = 99;
+        public List<ExtractedField> fields { get; set; } = new();
+    }
+
+    public class ExtractedField
+    {
+        public string variable { get; set; } = "";
+        public string value { get; set; } = "";
+        public List<Annotation> annotations { get; set; } = new();
+    }
+
+    public class Annotation
+    {
+        public int page_index { get; set; }
+        public List<int> box { get; set; } = new(); // [ymin, xmin, ymax, xmax]
     }
 }

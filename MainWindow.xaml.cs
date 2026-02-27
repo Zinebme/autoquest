@@ -10,6 +10,7 @@ using System.Windows.Input;
 using System.Threading.Tasks; 
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using ClosedXML.Excel;
  
 namespace autoquest 
 { 
@@ -21,6 +22,7 @@ namespace autoquest
         private List<List<string>> _patientBatches = new List<List<string>>(); 
         private int _currentPatientIndex = 0; 
         private List<Dictionary<string, string>> _results = new List<Dictionary<string, string>>(); 
+        private Dictionary<string, List<ExtractedField>> _patientExtractions = new();
         private List<string> _variables = new List<string>(); 
  
         // État Projet 
@@ -36,6 +38,10 @@ namespace autoquest
  
         // Image Processing 
         private ImageProcessor _imageProcessor; 
+
+        // Drag and drop for variables
+        private Point _dragStartPoint;
+        private string? _draggedItem;
  
         // Classe pour les fichiers avec sélection 
         public class FileItem 
@@ -44,6 +50,14 @@ namespace autoquest
             public string FileName => System.IO.Path.GetFileName(FilePath); 
             public bool IsSelected { get; set; } 
         } 
+
+        public class PageImageItem
+        {
+            public BitmapImage? ImageSource { get; set; }
+            public double Width { get; set; }
+            public double Height { get; set; }
+            public int PageIndex { get; set; }
+        }
  
         public MainWindow() 
         { 
@@ -99,6 +113,12 @@ namespace autoquest
  
         private void UpdateAllTexts() 
         { 
+            // Onglets
+            HomeTab.Header = LanguageManager.GetText("dashboard_tab");
+            ConfigTab.Header = LanguageManager.GetText("config_tab");
+            ExtractTab.Header = LanguageManager.GetText("extract_tab");
+            ResultsTab.Header = LanguageManager.GetText("results_tab");
+
             // Menu 
             FileMenu.Header = LanguageManager.GetText("file_menu"); 
             NewProjectMenuItem.Header = LanguageManager.GetText("new_project"); 
@@ -142,7 +162,8 @@ namespace autoquest
  
             // Configuration 
             ConfigTitle.Text = LanguageManager.GetText("config_title"); 
-            AddVariableManuallyButton.Content = "➕ " + LanguageManager.GetText("config_add"); 
+            AddVariableManuallyButton.Content = "➕ " + LanguageManager.GetText("config_manual_add");
+            BulkAddVariablesButton.Content = "📥 " + LanguageManager.GetText("bulk_add_placeholder");
             PagesConfigTitle.Text = LanguageManager.GetText("pages_config"); 
  
             // Extraction 
@@ -152,7 +173,8 @@ namespace autoquest
             PrevButton.Content = "◀ " + LanguageManager.GetText("previous"); 
             NextButton.Content = LanguageManager.GetText("next") + " ▶"; 
             ExtractButton.Content = "🚀 " + LanguageManager.GetText("extract_button"); 
- 
+            ControlViewTitle.Text = "🔍 " + LanguageManager.GetText("control_verification_title");
+
             // Résultats 
             SearchPlaceholder.Text = "🔍 " + LanguageManager.GetText("results_search"); 
             ExportExcelResultsButton.Content = "📊 " + LanguageManager.GetText("export_excel"); 
@@ -297,38 +319,31 @@ namespace autoquest
                 }
             } 
         } 
- 
-        private void MoveVariableUp_Click(object sender, RoutedEventArgs e) 
-        { 
-            var button = sender as Button; 
-            string? variable = button?.Tag as string; 
-            if (variable != null) 
-            { 
-                int index = _variables.IndexOf(variable); 
-                if (index > 0) 
-                { 
-                    _variables.RemoveAt(index); 
-                    _variables.Insert(index - 1, variable); 
-                    UpdateVariablesListBox(); 
-                } 
-            } 
-        } 
- 
-        private void MoveVariableDown_Click(object sender, RoutedEventArgs e) 
-        { 
-            var button = sender as Button; 
-            string? variable = button?.Tag as string; 
-            if (variable != null) 
-            { 
-                int index = _variables.IndexOf(variable); 
-                if (index < _variables.Count - 1) 
-                { 
-                    _variables.RemoveAt(index); 
-                    _variables.Insert(index + 1, variable); 
-                    UpdateVariablesListBox(); 
-                } 
-            } 
-        } 
+
+        private void BulkAddVariables_Click(object sender, RoutedEventArgs e)
+        {
+            string text = BulkVariablesTextBox.Text;
+            if (string.IsNullOrWhiteSpace(text)) return;
+
+            var lines = text.Split(new[] { "\r\n", "\r", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+            int addedCount = 0;
+
+            foreach (var line in lines)
+            {
+                string varName = line.Trim();
+                if (!string.IsNullOrEmpty(varName) && !_variables.Contains(varName))
+                {
+                    _variables.Add(varName);
+                    addedCount++;
+                }
+            }
+
+            if (addedCount > 0)
+            {
+                UpdateVariablesListBox();
+                BulkVariablesTextBox.Clear();
+            }
+        }
 
         private void DeleteVariable_Click(object sender, RoutedEventArgs e)
         {
@@ -338,6 +353,90 @@ namespace autoquest
             {
                 _variables.Remove(variable);
                 UpdateVariablesListBox();
+            }
+        }
+
+        private void VariablesListBox_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            _dragStartPoint = e.GetPosition(null);
+
+            // Trouver l'item sur lequel on a cliqué
+            var listBox = sender as ListBox;
+            if (listBox == null) return;
+
+            var element = listBox.InputHitTest(e.GetPosition(listBox)) as DependencyObject;
+            while (element != null && !(element is ListBoxItem))
+            {
+                element = VisualTreeHelper.GetParent(element);
+            }
+
+            if (element is ListBoxItem item)
+            {
+                _draggedItem = item.Content as string;
+            }
+            else
+            {
+                _draggedItem = null;
+            }
+        }
+
+        private void VariablesListBox_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (e.LeftButton == MouseButtonState.Pressed && _draggedItem != null)
+            {
+                Point mousePos = e.GetPosition(null);
+                Vector diff = _dragStartPoint - mousePos;
+
+                if (Math.Abs(diff.X) > SystemParameters.MinimumHorizontalDragDistance ||
+                    Math.Abs(diff.Y) > SystemParameters.MinimumVerticalDragDistance)
+                {
+                    var listBox = sender as ListBox;
+                    if (listBox == null) return;
+
+                    DragDrop.DoDragDrop(listBox, _draggedItem, DragDropEffects.Move);
+                }
+            }
+        }
+
+        private void VariablesListBox_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(typeof(string)))
+            {
+                string? droppedData = e.Data.GetData(typeof(string)) as string;
+                if (droppedData == null) return;
+
+                var listBox = sender as ListBox;
+                if (listBox == null) return;
+
+                // Trouver la position d'insertion
+                var element = listBox.InputHitTest(e.GetPosition(listBox)) as DependencyObject;
+                while (element != null && !(element is ListBoxItem))
+                {
+                    element = VisualTreeHelper.GetParent(element);
+                }
+
+                int targetIndex = -1;
+                if (element is ListBoxItem item)
+                {
+                    targetIndex = listBox.ItemContainerGenerator.IndexFromContainer(item);
+                }
+                else
+                {
+                    targetIndex = _variables.Count - 1;
+                }
+
+                int oldIndex = _variables.IndexOf(droppedData);
+                if (oldIndex != -1 && oldIndex != targetIndex)
+                {
+                    _variables.RemoveAt(oldIndex);
+                    if (targetIndex > oldIndex) targetIndex--; // Ajustement car on a supprimé l'élément
+
+                    if (targetIndex < 0) targetIndex = 0;
+                    if (targetIndex >= _variables.Count) _variables.Add(droppedData);
+                    else _variables.Insert(targetIndex, droppedData);
+
+                    UpdateVariablesListBox();
+                }
             }
         }
  
@@ -723,7 +822,26 @@ namespace autoquest
  
         private void UpdateOrganizationPreview(int pagesPerPatient, int totalFiles) 
         { 
-            OrganizationText.Text = $"Aperçu : Patient 1 → pages 1-{Math.Min(pagesPerPatient, totalFiles)}"; 
+            if (_patientBatches == null || !_patientBatches.Any())
+            {
+                OrganizationText.Text = LanguageManager.GetText("overview") + " : " + LanguageManager.GetText("no_files");
+                return;
+            }
+
+            var previewLines = new List<string>();
+            string patientLabel = LanguageManager.GetText("patient");
+            for (int i = 0; i < Math.Min(3, _patientBatches.Count); i++)
+            {
+                var files = _patientBatches[i].Select(p => Path.GetFileName(p));
+                previewLines.Add($"{patientLabel} {i + 1} : {string.Join(", ", files)}");
+            }
+
+            if (_patientBatches.Count > 3)
+            {
+                previewLines.Add("...");
+            }
+
+            OrganizationText.Text = LanguageManager.GetText("overview") + " :\n" + string.Join("\n", previewLines);
         } 
  
         private void DisplayCurrentPatient() 
@@ -734,7 +852,7 @@ namespace autoquest
                 ExtractButton.IsEnabled = false; 
                 PrevButton.IsEnabled = false; 
                 NextButton.IsEnabled = false; 
-                PreviewImage.Source = null;
+                MultiPagePreviewControl.ItemsSource = null;
                 NoImageText.Visibility = Visibility.Visible;
                 return; 
             } 
@@ -746,30 +864,104 @@ namespace autoquest
             PrevButton.IsEnabled = _currentPatientIndex > 0; 
             NextButton.IsEnabled = _currentPatientIndex < _patientBatches.Count - 1; 
  
-            // Charger l'image du premier fichier du batch pour l'aperçu
-            try {
-                string firstFile = currentFiles[0];
-                if (firstFile.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) {
-                    PreviewImage.Source = null;
-                    NoImageText.Text = "Aperçu PDF non disponible (cliquez pour ouvrir)";
-                    NoImageText.Visibility = Visibility.Visible;
-                } else {
+            var imageItems = new List<PageImageItem>();
+            for (int i = 0; i < currentFiles.Count; i++)
+            {
+                try
+                {
+                    string file = currentFiles[i];
+                    if (file.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)) continue;
+
                     BitmapImage bitmap = new BitmapImage();
                     bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(firstFile);
+                    bitmap.UriSource = new Uri(file);
                     bitmap.CacheOption = BitmapCacheOption.OnLoad;
                     bitmap.EndInit();
-                    PreviewImage.Source = bitmap;
-                    NoImageText.Visibility = Visibility.Collapsed;
+
+                    imageItems.Add(new PageImageItem
+                    {
+                        ImageSource = bitmap,
+                        Width = bitmap.PixelWidth,
+                        Height = bitmap.PixelHeight,
+                        PageIndex = i
+                    });
                 }
-            } catch {
-                PreviewImage.Source = null;
-                NoImageText.Visibility = Visibility.Visible;
+                catch { }
+            }
+
+            MultiPagePreviewControl.ItemsSource = imageItems;
+            NoImageText.Visibility = imageItems.Any() ? Visibility.Collapsed : Visibility.Visible;
+            if (!imageItems.Any() && currentFiles.Any(f => f.EndsWith(".pdf", StringComparison.OrdinalIgnoreCase)))
+            {
+                NoImageText.Text = "Aperçu PDF non disponible";
+            }
+            else
+            {
+                NoImageText.Text = "Aucun visuel disponible";
             }
 
             // Mettre à jour le panel de données
             UpdateControlDataPanel();
+
+            // Dessiner les annotations après un court délai pour laisser le temps au layout de se faire
+            Dispatcher.BeginInvoke(new Action(() => DrawAnnotations()), System.Windows.Threading.DispatcherPriority.Background);
         } 
+
+        private void DrawAnnotations()
+        {
+            if (MultiPagePreviewControl == null) return;
+            string patientId = $"P{_currentPatientIndex + 1:000}";
+            if (!_patientExtractions.TryGetValue(patientId, out var fields)) return;
+
+            for (int i = 0; i < MultiPagePreviewControl.Items.Count; i++)
+            {
+                var container = MultiPagePreviewControl.ItemContainerGenerator.ContainerFromIndex(i) as FrameworkElement;
+                if (container == null) continue;
+
+                var canvas = FindVisualChild<Canvas>(container);
+                if (canvas == null) continue;
+
+                canvas.Children.Clear();
+                var item = MultiPagePreviewControl.Items[i] as PageImageItem;
+                if (item == null) continue;
+
+                foreach (var field in fields)
+                {
+                    foreach (var ann in field.annotations)
+                    {
+                        if (ann.page_index == item.PageIndex && ann.box.Count == 4)
+                        {
+                            // [ymin, xmin, ymax, xmax] normalized 0-1000
+                            double ymin = ann.box[0] * item.Height / 1000.0;
+                            double xmin = ann.box[1] * item.Width / 1000.0;
+                            double ymax = ann.box[2] * item.Height / 1000.0;
+                            double xmax = ann.box[3] * item.Width / 1000.0;
+
+                            var rect = new System.Windows.Shapes.Rectangle {
+                                Stroke = Brushes.Red, StrokeThickness = 2,
+                                Width = Math.Max(1, xmax - xmin), Height = Math.Max(1, ymax - ymin),
+                                ToolTip = field.variable + " : " + field.value
+                            };
+                            Canvas.SetLeft(rect, xmin);
+                            Canvas.SetTop(rect, ymin);
+                            canvas.Children.Add(rect);
+                        }
+                    }
+                }
+            }
+        }
+
+        private T? FindVisualChild<T>(DependencyObject obj) where T : DependencyObject
+        {
+            for (int i = 0; i < VisualTreeHelper.GetChildrenCount(obj); i++)
+            {
+                var child = VisualTreeHelper.GetChild(obj, i);
+                if (child is T t) return t;
+                var childOfChild = FindVisualChild<T>(child);
+                if (childOfChild != null) return childOfChild;
+            }
+            return null;
+        }
 
         private void UpdateControlDataPanel() {
             ControlDataPanel.Children.Clear();
@@ -890,11 +1082,22 @@ namespace autoquest
                 result["Source"] = Path.GetFileName(currentFiles[0]); 
                 result["Pages"] = currentFiles.Count.ToString(); 
  
-                // Simulation de résultats réels (au lieu de Martin etc)
-                foreach (var v in _variables) 
-                { 
-                    result[v] = ""; // Initialise vide pour que l'utilisateur remplisse ou que l'IA remplisse
-                } 
+                // Utiliser les résultats de l'API s'ils existent
+                if (extractResponse.fields != null && extractResponse.fields.Any())
+                {
+                    _patientExtractions[result["Patient"]] = extractResponse.fields;
+                    foreach (var field in extractResponse.fields)
+                    {
+                        result[field.variable] = field.value;
+                    }
+                }
+                else
+                {
+                    foreach (var v in _variables)
+                    {
+                        result[v] = "";
+                    }
+                }
  
                 // Remplacer ou ajouter le résultat
                 var existing = _results.FirstOrDefault(r => r["Patient"] == result["Patient"]);
@@ -1002,7 +1205,60 @@ namespace autoquest
  
         private void ExportExcelButton_Click(object sender, RoutedEventArgs e) 
         { 
-            MessageBox.Show("Export Excel (Simulation)"); 
+            if (!_results.Any())
+            {
+                MessageBox.Show(LanguageManager.GetText("msg_no_data"),
+                              LanguageManager.GetText("msg_warning"), MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+
+            var dialog = new SaveFileDialog
+            {
+                Filter = "Excel Workbook (*.xlsx)|*.xlsx",
+                FileName = $"Export_{DateTime.Now:yyyyMMdd_HHmm}.xlsx"
+            };
+
+            if (dialog.ShowDialog() == true)
+            {
+                try
+                {
+                    using (var workbook = new XLWorkbook())
+                    {
+                        var worksheet = workbook.Worksheets.Add("Résultats");
+
+                        // En-têtes
+                        var headers = _results.SelectMany(r => r.Keys).Distinct().ToList();
+                        for (int i = 0; i < headers.Count; i++)
+                        {
+                            worksheet.Cell(1, i + 1).Value = headers[i];
+                            worksheet.Cell(1, i + 1).Style.Font.Bold = true;
+                            worksheet.Cell(1, i + 1).Style.Fill.BackgroundColor = XLColor.LightGray;
+                        }
+
+                        // Données
+                        for (int r = 0; r < _results.Count; r++)
+                        {
+                            var rowData = _results[r];
+                            for (int c = 0; c < headers.Count; c++)
+                            {
+                                string header = headers[c];
+                                if (rowData.ContainsKey(header))
+                                {
+                                    worksheet.Cell(r + 2, c + 1).Value = rowData[header];
+                                }
+                            }
+                        }
+
+                        worksheet.Columns().AdjustToContents();
+                        workbook.SaveAs(dialog.FileName);
+                    }
+                    MessageBox.Show("Export Excel réussi !", "Succès", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Erreur lors de l'export Excel : {ex.Message}", "Erreur", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
         } 
  
         private void ExportCsvButton_Click(object sender, RoutedEventArgs e) 
